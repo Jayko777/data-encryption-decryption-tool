@@ -1,15 +1,118 @@
 import tkinter as tk
+import sys
+import os
 from tkinter import messagebox, ttk, filedialog, PhotoImage
 from PIL import Image, ImageTk
 from file_menu_library import translations_file_menu
 from text_menu_library import translations_text_file
 from main_menu_library import translations_main_menu
-from encryption_methods import sezar_decryption,sezar_encryption,xor_decryption,xor_encryption,xor_key_type,decimal_to_binary,binary_to_decimal,generate_random_key_file,generate_random_key_text
 import random
 
+def resource_path(relative_path):
+    """ Get the absolute path to a resource, works for both dev and PyInstaller builds. """
+    try:
+        # PyInstaller creates a temp folder and stores the path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+bg_image_path = resource_path("background.jpg")
+bg_image = Image.open(bg_image_path)
 
 
+def sezar_encryption(word, key_number):
+    encrypted_word = ""
+    for i in word:
+        ascii_place = ord(i)
+        encrypted_character = chr(ascii_place + key_number)
+        encrypted_word += encrypted_character
+    return encrypted_word
 
+
+def sezar_decryption(word, key_number):
+    decrypted_word = ""
+    for i in word:
+        ascii_place = ord(i)
+        decrypted_character = chr(ascii_place - key_number)
+        decrypted_word += decrypted_character
+    return decrypted_word
+
+
+def xor_key_type(key):
+    if str(key).isalpha():
+        number = ord(key)
+    else:
+        number = int(key) % 256
+    return number
+
+
+def decimal_to_binary(number):
+    bin = ''
+    while number != 0:
+        bin = str(number % 2) + bin
+        number = number // 2
+    while len(bin) != 8:
+        bin = '0' + bin
+    return bin
+
+
+def binary_to_decimal(number):
+    decimal = 0
+    power = 7
+    for i in number:
+        decimal = decimal + int(i)* 2 ** power
+        power -= 1
+    return decimal
+
+
+def xor_encryption(word, key):
+    encrypted_word = ""
+    key_number_binary = decimal_to_binary(xor_key_type(key))
+    for i in word:
+        ascii_place = ord(i)
+        binary_symbol = decimal_to_binary(ascii_place)
+        xor_binary = ''
+        for k in range(8):
+            if (key_number_binary[k] == '1' and binary_symbol[k] == '0') or (
+                    key_number_binary[k] == '0' and binary_symbol[k] == '1'):
+                xor_binary = xor_binary + '1'
+            else:
+                xor_binary = xor_binary + '0'
+        xor_element = chr(binary_to_decimal(xor_binary))
+        encrypted_word = encrypted_word + xor_element
+    return encrypted_word
+
+
+def xor_decryption(word, key):
+    decrypted_word = ""
+    key_number_binary = decimal_to_binary(xor_key_type(key))
+    for i in word:
+        ascii_place = ord(i)
+        binary_symbol = decimal_to_binary(ascii_place)
+        xor_binary = ''
+        for k in range(8):
+            if (key_number_binary[k] == '1' and binary_symbol[k] == '0') or (
+                    key_number_binary[k] == '0' and binary_symbol[k] == '1'):
+                xor_binary = xor_binary + '1'
+            else:
+                xor_binary = xor_binary + '0'
+        xor_element = chr(binary_to_decimal(xor_binary))
+        decrypted_word = decrypted_word + xor_element
+    return decrypted_word
+
+def generate_random_key_text():
+    random_key_text = random.randint(1, 1000)
+    key_entry_text.delete(0, tk.END)
+    key_entry_text.insert(0, str(random_key_text))
+
+
+def generate_random_key_file():
+    global key_entry_file
+    random_key_file = random.randint(1, 1000)
+    key_entry_file.delete(0, tk.END)
+    key_entry_file.insert(0, str(random_key_file))
 
 def process_text(action, input_field, key_entry_text, encryption_method, output_field, history_text):
     input_text = input_field.get("1.0", tk.END).rstrip('\n')
@@ -42,7 +145,6 @@ def process_text(action, input_field, key_entry_text, encryption_method, output_
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-
 def text_menu(current_language):
     def go_to_main_menu():
         root.destroy()
@@ -65,47 +167,46 @@ def text_menu(current_language):
     bg_label = tk.Label(root, image=bg_photo)
     bg_label.place(relwidth=1, relheight=1)
 
-
     text_label = tk.Label(root, text=translations_text_file[current_language]["text_label"],
                           font=("Arial", 26, "bold"), bg="#edb590")
-    text_label.place(x=875, y=180)
+    text_label.place(relx=0.43, rely=0.1)
 
     input_field = tk.Text(root, height=5, width=50, font=("Arial", 18), bg="#edb288",  bd=2, relief="solid")
-    input_field.place(x=660, y=250)
+    input_field.place(relx=0.30, rely=0.17)
 
     encryption_method_label = tk.Label(root, text=translations_text_file[current_language]["encryption_method_label"],
                                        font=("Arial", 20, "bold"), bg="#ecb187")
-    encryption_method_label.place(x=790, y=405)
+    encryption_method_label.place(relx=0.395, rely=0.35)
 
     encryption_method = ttk.Combobox(root, values=["Caesar", "XOR"], state="readonly", font=("Arial", 28))
     encryption_method.set("Caesar")
-    encryption_method.place(x=750, y=460)
+    encryption_method.place(relx=0.36, rely=0.42)
 
     key_label = tk.Label(root, text=translations_text_file[current_language]["key_label"],
                          font=("Arial", 18, "bold"), bg="#ecb187")
-    key_label.place(x=850, y=530)
+    key_label.place(relx=0.425, rely=0.49)
 
-    key_entry_text = tk.Entry(root, font=("Arial", 36), bd=2,bg="#ecb48f", relief="solid")
-    key_entry_text.place(x=705, y=575)
+    key_entry_text = tk.Entry(root, font=("Arial", 36), bd=2, bg="#ecb48f", relief="solid")
+    key_entry_text.place(relx=0.33, rely=0.53)
 
     random_button = tk.Button(root, text=translations_text_file[current_language]["random_button_text"],
                               font=("Arial", 20), command=lambda: generate_random_key_text(),
                               relief="solid", bg="#4CAF50", fg="white", activebackground="#45a049")
-    random_button.place(x=401, y=577)
+    random_button.place(relx=0.132, rely=0.533)
 
     output_label = tk.Label(root, text=translations_text_file[current_language]["output_label"],
                             font=("Arial", 18, "bold"), bg="#eab895")
-    output_label.place(x=920, y=650)
+    output_label.place(relx=0.465, rely=0.61)
 
-    output_field = tk.Text(root, height=5, width=50, font=("Arial", 18), bd=2,bg="#eab897", relief="solid")
-    output_field.place(x = 650, y=700)
+    output_field = tk.Text(root, height=5, width=50, font=("Arial", 18), bd=2, bg="#eab897", relief="solid")
+    output_field.place(relx=0.305, rely=0.66)
 
     history_label = tk.Label(root, text=translations_text_file[current_language]["history_label"],
                              font=("Arial", 20, "bold"), bg="#dfbbad")
-    history_label.place(x=1625, y=400)
+    history_label.place(relx=0.84, rely=0.31)
 
-    history_text = tk.Text(root, height=15, width=50, font=("Arial", 13), bd=2,bg="#dcc1ba", relief="solid")
-    history_text.place(x=1450, y=450)
+    history_text = tk.Text(root, height=15, width=50, font=("Arial", 9), bd=2, bg="#dcc1ba", relief="solid")
+    history_text.place(relx=0.76, rely=0.36)
 
     # Buttons for Encrypt and Decrypt
     encrypt_button = tk.Button(root, text=translations_text_file[current_language]["encrypt_button"],
@@ -113,21 +214,20 @@ def text_menu(current_language):
                                activebackground="#1976D2",
                                command=lambda: process_text("Encrypt", input_field, key_entry_text, encryption_method,
                                                             output_field, history_text))
-    encrypt_button.place(x=750, y=860)
+    encrypt_button.place(relx=0.34, rely=0.86)
 
     decrypt_button = tk.Button(root, text=translations_text_file[current_language]["decrypt_button"],
                                font=("Arial", 32), relief="solid", bg="#FF2343", fg="white",
                                activebackground="#E64A19",
                                command=lambda: process_text("Decrypt", input_field, key_entry_text, encryption_method,
                                                             output_field, history_text))
-    decrypt_button.place(x=990, y=860 )
-
+    decrypt_button.place(relx=0.52, rely=0.86)
 
     try:
         back_icon = tk.PhotoImage(file="back_icon.png")
         back_button = tk.Button(root, image=back_icon, command=go_to_main_menu, borderwidth=1)
         back_button.image = back_icon
-        back_button.place(x=10, y=10)
+        back_button.place(relx=0.01, rely=0.01)
     except Exception as e:
         print(f"Error loading back icon: {e}")
 
@@ -135,11 +235,12 @@ def text_menu(current_language):
         exit_icon = tk.PhotoImage(file="exit_icon.png")
         exit_button = tk.Button(root, image=exit_icon, command=exit_application, borderwidth=0)
         exit_button.image = exit_icon
-        exit_button.place(x=screen_width - 60, y=10)
+        exit_button.place(relx=0.99, rely=0.01, anchor="ne")
     except Exception as e:
         print(f"Error loading exit icon: {e}")
 
     root.mainloop()
+
 
 
 def change_language(event):
@@ -216,7 +317,7 @@ def main_menu():
         font=("Helvetica", 35), relief="solid", bg="#00ffb6", fg="white", activebackground="#006a4b",
         command=open_text_menu
     )
-    text_button.place(relx=0.46, rely=0.35, anchor="center")
+    text_button.place(relx=0.42, rely=0.35, anchor="center")
 
 
     file_button = tk.Button(
@@ -225,7 +326,7 @@ def main_menu():
         font=("Helvetica", 35), relief="solid", bg="#aa67ff", fg="white", activebackground="#7000ff",
         command=open_file_menu
     )
-    file_button.place(relx=0.54, rely=0.35, anchor="center")
+    file_button.place(relx=0.58, rely=0.35, anchor="center")
 
 
     language_label = tk.Label(root, text=translations_main_menu[current_language]["language_option"], font=("Helvetica", 40), bg="#eeb185")
@@ -243,7 +344,7 @@ def main_menu():
         exit_icon = PhotoImage(file="exit_icon.png")
         exit_button = tk.Button(root, image=exit_icon, command=exit_application, borderwidth=0)
         exit_button.image = exit_icon
-        exit_button.place(x=1870, y=10)
+        exit_button.place(relx=0.97, y=0.08)
     except Exception as e:
         print(f"Error loading exit icon: {e}")
 
@@ -341,10 +442,10 @@ def file_menu(current_language):
     file_label.place(relx=0.5, rely=0.145, anchor="center")
 
     file_path_entry = tk.Entry(root, width=35, font=("Arial", 30), bg="#debfa2", relief="solid")
-    file_path_entry.place(relx=0.513, rely=0.25, anchor="center")
+    file_path_entry.place(relx=0.54, rely=0.23, anchor="center")
 
     browse_button = tk.Button(root, text=translations_file_menu[current_language]["browse_button_text"], command=browse_file, font=("Arial", 20), bg="#debfa2", relief="solid")
-    browse_button.place(relx=0.28, rely=0.25, anchor="center")
+    browse_button.place(relx=0.25, rely=0.23, anchor="center")
 
     method_label = tk.Label(root, text=translations_file_menu[current_language]["select_encryption_method_label"], font=("Arial", 30), bg="#debfa2", relief="solid")
     method_label.place(relx=0.5, rely=0.34, anchor="center")
@@ -358,18 +459,20 @@ def file_menu(current_language):
     key_label.place(relx=0.5, rely=0.5, anchor="center")
 
     key_entry_file = tk.Entry(root, font=("Arial", 30), bg="#debfa2", relief="solid")
-    key_entry_file.place(relx=0.5, rely=0.58, anchor="center")
+    key_entry_file.place(relx=0.51, rely=0.58, anchor="center")
 
-    random_button = tk.Button(root, text=translations_file_menu[current_language]["generate_random_key"], command=lambda: generate_random_key_file(), font=("Arial", 20), relief="solid", bg="#4CAF50", fg="white", activebackground="#00FF00")
-    random_button.place(relx=0.304, rely=0.58, anchor="center")
+    random_button = tk.Button(root, text=translations_file_menu[current_language]["generate_random_key"], command=lambda: generate_random_key_file(), font=("Arial", 18), relief="solid", bg="#4CAF50", fg="white", activebackground="#00FF00")
+    random_button.place(relx=0.277, rely=0.58, anchor="center")
 
 
-    button_frame = tk.Frame(root, bg="#f9f9f9")
-    button_frame.place(relx=0.5, rely=0.7, anchor="center")
-    encrypt_button = tk.Button(button_frame, text=translations_file_menu[current_language]["encrypt_button"], command=lambda: process_file("Encrypt"), font=("Arial", 40), relief="solid", bg="#2196F3", fg="white", activebackground="#033a64")
+    button_frame_encrypt = tk.Frame(root, bg="#f9f9f9")
+    button_frame_encrypt.place(relx=0.43, rely=0.74, anchor="center")
+    encrypt_button = tk.Button(button_frame_encrypt, text=translations_file_menu[current_language]["encrypt_button"], command=lambda: process_file("Encrypt"), font=("Arial", 40), relief="solid", bg="#2196F3", fg="white", activebackground="#033a64")
     encrypt_button.pack(side=tk.LEFT, padx=1)
-
-    decrypt_button = tk.Button(button_frame, text=translations_file_menu[current_language]["decrypt_button"], command=lambda: process_file("Decrypt"), font=("Arial", 40), relief="solid", bg="#FF2343", fg="white", activebackground="#68000f")
+    
+    button_frame_decrypt = tk.Frame(root, bg="#f9f9f9")
+    button_frame_decrypt.place(relx=0.59, rely=0.74, anchor="center")
+    decrypt_button = tk.Button(button_frame_decrypt, text=translations_file_menu[current_language]["decrypt_button"], command=lambda: process_file("Decrypt"), font=("Arial", 40), relief="solid", bg="#FF2343", fg="white", activebackground="#68000f")
     decrypt_button.pack(side=tk.RIGHT, padx=1)
 
 
@@ -379,7 +482,7 @@ def file_menu(current_language):
         back_icon = PhotoImage(file="back_icon.png")
         back_button = tk.Button(root, image=back_icon, command=go_to_main_menu, borderwidth=0)
         back_button.image = back_icon
-        back_button.place(x=10, y=10)
+        back_button.place(relx=0.005, rely=0.005)
     except Exception as e:
         print(f"Error loading back icon: {e}")
 
@@ -387,7 +490,7 @@ def file_menu(current_language):
         exit_icon = PhotoImage(file="exit_icon.png")
         exit_button = tk.Button(root, image=exit_icon, command=exit_application, borderwidth=0)
         exit_button.image = exit_icon
-        exit_button.place(x=1870, y=10)
+        exit_button.place(relx=0.97, rely=0.005)
     except Exception as e:
         print(f"Error loading exit icon: {e}")
 
@@ -395,3 +498,4 @@ def file_menu(current_language):
 
 
 main_menu()
+
